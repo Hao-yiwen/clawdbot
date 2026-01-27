@@ -1,8 +1,4 @@
-import { hasControlCommand } from "../../../../src/auto-reply/command-detection.js";
-import {
-  createInboundDebouncer,
-  resolveInboundDebounceMs,
-} from "../../../../src/auto-reply/inbound-debounce.js";
+import { getFeishuRuntime } from "../runtime.js";
 
 import type { ResolvedFeishuAccount } from "../accounts.js";
 import type { FeishuMessageEvent, FeishuMessage } from "../types.js";
@@ -20,9 +16,10 @@ export function createFeishuMessageHandler(params: {
   account: ResolvedFeishuAccount;
 }): FeishuMessageHandler {
   const { ctx, account } = params;
-  const debounceMs = resolveInboundDebounceMs({ cfg: ctx.cfg, channel: "feishu" });
+  const core = getFeishuRuntime();
+  const debounceMs = core.channel.debounce.resolveInboundDebounceMs({ cfg: ctx.cfg, channel: "feishu" });
 
-  const debouncer = createInboundDebouncer<{
+  const debouncer = core.channel.debounce.createInboundDebouncer<{
     event: FeishuMessageEvent;
     opts: { wasMentioned?: boolean };
   }>({
@@ -39,7 +36,7 @@ export function createFeishuMessageHandler(params: {
     shouldDebounce: (entry) => {
       const text = extractMessageText(entry.event.event.message);
       if (!text.trim()) return false;
-      return !hasControlCommand(text, ctx.cfg);
+      return !core.channel.text.hasControlCommand(text, ctx.cfg);
     },
     onFlush: async (entries) => {
       const last = entries.at(-1);

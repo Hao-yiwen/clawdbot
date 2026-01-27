@@ -173,9 +173,9 @@ export async function getFeishuBotInfo(
 }
 
 /**
- * Probe Feishu connection (health check)
+ * Probe Feishu connection (health check) - internal API
  */
-export async function probeFeishu(
+export async function probeFeishuBasic(
   account: ResolvedFeishuAccount,
 ): Promise<{
   ok: boolean;

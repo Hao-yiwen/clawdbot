@@ -1,4 +1,3 @@
-import * as crypto from "node:crypto";
 import { FEISHU_API_BASE, type FeishuTokenResponse } from "./types.js";
 
 // Token cache with expiration
@@ -67,63 +66,4 @@ export async function getTenantAccessToken(params: {
  */
 export function clearTokenCache(appId: string) {
   tokenCache.delete(appId);
-}
-
-/**
- * Verify event signature (for encrypted events)
- * Signature = SHA256(timestamp + nonce + encryptKey + body)
- */
-export function verifyEventSignature(params: {
-  timestamp: string;
-  nonce: string;
-  encryptKey: string;
-  body: string;
-  signature: string;
-}): boolean {
-  const { timestamp, nonce, encryptKey, body, signature } = params;
-
-  const content = timestamp + nonce + encryptKey + body;
-  const computedSignature = crypto
-    .createHash("sha256")
-    .update(content)
-    .digest("hex");
-
-  return computedSignature === signature;
-}
-
-/**
- * Decrypt encrypted event payload
- * AES-256-CBC decryption with base64 encoded ciphertext
- */
-export function decryptEvent(params: {
-  encrypt: string;
-  encryptKey: string;
-}): unknown {
-  const { encrypt, encryptKey } = params;
-
-  // Derive AES key from encrypt key using SHA256
-  const key = crypto.createHash("sha256").update(encryptKey).digest();
-
-  // Base64 decode the ciphertext
-  const ciphertext = Buffer.from(encrypt, "base64");
-
-  // Extract IV (first 16 bytes) and encrypted data
-  const iv = ciphertext.subarray(0, 16);
-  const encryptedData = ciphertext.subarray(16);
-
-  // Decrypt
-  const decipher = crypto.createDecipheriv("aes-256-cbc", key, iv);
-  let decrypted = decipher.update(encryptedData);
-  decrypted = Buffer.concat([decrypted, decipher.final()]);
-
-  // Parse JSON
-  const jsonStr = decrypted.toString("utf8");
-  return JSON.parse(jsonStr);
-}
-
-/**
- * Verify URL verification token
- */
-export function verifyToken(token: string, expectedToken: string): boolean {
-  return token === expectedToken;
 }

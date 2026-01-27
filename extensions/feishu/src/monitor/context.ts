@@ -1,17 +1,17 @@
-import type { ClawdbotConfig, RuntimeEnv } from "clawdbot/plugin-sdk";
+import type {
+  ClawdbotConfig,
+  DmPolicy,
+  GroupPolicy,
+  HistoryEntry,
+  RuntimeEnv,
+} from "clawdbot/plugin-sdk";
 
-import type { HistoryEntry } from "../../../../src/auto-reply/reply/history.js";
-import type { SessionScope } from "../../../../src/config/sessions.js";
-import { resolveSessionKey } from "../../../../src/config/sessions.js";
-import type { DmPolicy, GroupPolicy } from "../../../../src/config/types.js";
-import { logVerbose } from "../../../../src/globals.js";
-import { createDedupeCache } from "../../../../src/infra/dedupe.js";
-import { getChildLogger } from "../../../../src/logging.js";
-
+import { getFeishuRuntime } from "../runtime.js";
 import type { ResolvedFeishuAccount } from "../accounts.js";
 import { getFeishuUserInfo, getFeishuChatInfo } from "../api.js";
 
 export type FeishuChatType = "direct" | "group";
+export type SessionScope = "per-sender" | "global";
 
 /**
  * Infer chat type from chat ID format
@@ -73,7 +73,7 @@ export type FeishuMonitorContext = {
   groupPolicy: GroupPolicy;
   textLimit: number;
 
-  logger: ReturnType<typeof getChildLogger>;
+  logger: { debug: (msg: string, meta?: Record<string, unknown>) => void; info: (meta: Record<string, unknown>, msg: string) => void; warn: (meta: Record<string, unknown>, msg: string) => void; error: (meta: Record<string, unknown>, msg: string) => void };
   markMessageSeen: (chatId: string | undefined, messageId?: string) => boolean;
   shouldDropMismatchedEvent: (appId: unknown) => boolean;
   resolveFeishuSessionKey: (params: {
@@ -114,8 +114,15 @@ export function createFeishuMonitorContext(params: {
   groupPolicy: FeishuMonitorContext["groupPolicy"];
   textLimit: number;
 }): FeishuMonitorContext {
+  const core = getFeishuRuntime();
   const chatHistories = new Map<string, HistoryEntry[]>();
-  const logger = getChildLogger({ module: "feishu-auto-reply" });
+  const logger = core.logging.getChildLogger({ module: "feishu-auto-reply" });
+
+  const logVerbose = (message: string) => {
+    if (core.logging.shouldLogVerbose()) {
+      logger.debug(message);
+    }
+  };
 
   const chatCache = new Map<
     string,
@@ -126,14 +133,35 @@ export function createFeishuMonitorContext(params: {
     }
   >();
   const userCache = new Map<string, { name?: string }>();
-  const seenMessages = createDedupeCache({ ttlMs: 60_000, maxSize: 500 });
+
+  // Simple dedupe cache
+  const seenMessages = new Map<string, number>();
+  const SEEN_TTL_MS = 60_000;
+  const MAX_SEEN_SIZE = 500;
+
+  const checkSeen = (key: string): boolean => {
+    const now = Date.now();
+    // Cleanup old entries
+    if (seenMessages.size > MAX_SEEN_SIZE) {
+      for (const [k, ts] of seenMessages) {
+        if (now - ts > SEEN_TTL_MS) {
+          seenMessages.delete(k);
+        }
+      }
+    }
+    if (seenMessages.has(key)) {
+      return true; // Already seen
+    }
+    seenMessages.set(key, now);
+    return false;
+  };
 
   const allowFrom = normalizeAllowList(params.allowFrom);
   const defaultRequireMention = params.defaultRequireMention ?? true;
 
   const markMessageSeen = (chatId: string | undefined, messageId?: string) => {
     if (!chatId || !messageId) return false;
-    return seenMessages.check(`${chatId}:${messageId}`);
+    return checkSeen(`${chatId}:${messageId}`);
   };
 
   const resolveFeishuSessionKey = (p: {
@@ -151,13 +179,12 @@ export function createFeishuMonitorContext(params: {
     const from = isDirectMessage
       ? `feishu:user:${userId || chatId}`
       : `feishu:chat:${chatId}`;
-    const resolvedChatType = isDirectMessage ? "direct" : "channel";
 
-    return resolveSessionKey(
-      params.sessionScope,
-      { From: from, ChatType: resolvedChatType, Provider: "feishu" },
-      params.mainKey,
-    );
+    // Simple session key resolution
+    if (params.sessionScope === "global") {
+      return params.mainKey;
+    }
+    return `${params.mainKey}:${from}`;
   };
 
   const resolveChatInfo = async (chatId: string) => {
@@ -170,7 +197,7 @@ export function createFeishuMonitorContext(params: {
       });
       const entry = {
         name: info.name,
-        type: info.chatType as FeishuChatType | undefined,
+        type: info.chat_type as FeishuChatType | undefined,
         description: info.description,
       };
       chatCache.set(chatId, entry);

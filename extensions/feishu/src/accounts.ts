@@ -9,15 +9,11 @@ export type ResolvedFeishuAccount = {
   name?: string;
   appId: string;
   appSecret: string;
-  encryptKey?: string;
-  verificationToken?: string;
-  webhookPath: string;
   credentialSource: FeishuCredentialSource;
   config: FeishuAccountConfig;
 };
 
 const DEFAULT_ACCOUNT_ID = "default";
-const DEFAULT_WEBHOOK_PATH = "/feishu/webhook";
 
 function getFeishuConfig(cfg: ClawdbotConfig): FeishuConfig | undefined {
   return (cfg as { channels?: { feishu?: FeishuConfig } }).channels?.feishu;
@@ -53,18 +49,6 @@ function resolveAppSecret(
   if (explicit?.trim()) return explicit.trim();
   if (accountConfig?.appSecret?.trim()) return accountConfig.appSecret.trim();
   return process.env.FEISHU_APP_SECRET?.trim();
-}
-
-function resolveEncryptKey(accountConfig?: FeishuAccountConfig): string | undefined {
-  if (accountConfig?.encryptKey?.trim()) return accountConfig.encryptKey.trim();
-  return process.env.FEISHU_ENCRYPT_KEY?.trim();
-}
-
-function resolveVerificationToken(accountConfig?: FeishuAccountConfig): string | undefined {
-  if (accountConfig?.verificationToken?.trim()) {
-    return accountConfig.verificationToken.trim();
-  }
-  return process.env.FEISHU_VERIFICATION_TOKEN?.trim();
 }
 
 /**
@@ -125,9 +109,6 @@ export function resolveFeishuAccount(params: {
   // Resolve credentials
   const { appId, source } = resolveAppId(undefined, mergedConfig);
   const appSecret = resolveAppSecret(undefined, mergedConfig);
-  const encryptKey = resolveEncryptKey(mergedConfig);
-  const verificationToken = resolveVerificationToken(mergedConfig);
-  const webhookPath = mergedConfig.webhookPath?.trim() || DEFAULT_WEBHOOK_PATH;
 
   // Determine enabled state
   const enabled =
@@ -139,9 +120,6 @@ export function resolveFeishuAccount(params: {
     name: mergedConfig.name,
     appId: appId ?? "",
     appSecret: appSecret ?? "",
-    encryptKey,
-    verificationToken,
-    webhookPath,
     credentialSource: source,
     config: mergedConfig,
   };

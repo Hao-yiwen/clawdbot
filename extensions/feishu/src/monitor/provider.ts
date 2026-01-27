@@ -1,14 +1,11 @@
-import type { ClawdbotConfig, RuntimeEnv } from "clawdbot/plugin-sdk";
+import type { ClawdbotConfig, DmPolicy, GroupPolicy, RuntimeEnv } from "clawdbot/plugin-sdk";
 
-import { logVerbose } from "../../../../src/globals.js";
-import { resolveSessionScope } from "../../../../src/config/sessions.js";
-import type { DmPolicy, GroupPolicy } from "../../../../src/config/types.js";
-
+import { getFeishuRuntime } from "../runtime.js";
 import { resolveFeishuAccount, type ResolvedFeishuAccount } from "../accounts.js";
 import { getFeishuBotInfo } from "../api.js";
-import type { FeishuEvent, FeishuMessageEvent } from "../types.js";
+import type { FeishuEvent } from "../types.js";
 
-import { createFeishuMonitorContext, type FeishuMonitorContext } from "./context.js";
+import { createFeishuMonitorContext, type FeishuMonitorContext, type SessionScope } from "./context.js";
 import { createFeishuMessageHandler, type FeishuMessageHandler } from "./message-handler.js";
 import { createFeishuEventHandlers, type FeishuEventHandlers } from "./events/index.js";
 
@@ -34,6 +31,13 @@ export async function createFeishuMonitorProvider(
   params: FeishuMonitorProviderParams,
 ): Promise<FeishuMonitorProvider> {
   const { cfg, runtime, accountId } = params;
+  const core = getFeishuRuntime();
+
+  const logVerbose = (message: string) => {
+    if (core.logging.shouldLogVerbose()) {
+      core.logging.getChildLogger({ module: "feishu" }).debug(message);
+    }
+  };
 
   // Resolve account
   const account = resolveFeishuAccount({ cfg, accountId });
@@ -53,7 +57,7 @@ export async function createFeishuMonitorProvider(
 
   // Resolve config values
   const feishuConfig = account.config;
-  const sessionScope = resolveSessionScope(cfg.session?.scope);
+  const sessionScope: SessionScope = (cfg.session?.scope as SessionScope) ?? "per-sender";
   const mainKey = `feishu:${account.accountId}`;
 
   const dmConfig = feishuConfig.dm;

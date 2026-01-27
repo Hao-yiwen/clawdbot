@@ -182,32 +182,6 @@ export async function listFeishuGroupMembers(params: {
 }
 
 /**
- * Get user info
- */
-export async function getFeishuUserInfo(params: {
-  account: ResolvedFeishuAccount;
-  userId: string;
-  userIdType?: "open_id" | "user_id" | "union_id";
-}): Promise<FeishuUserInfo | null> {
-  const { account, userId, userIdType = "open_id" } = params;
-
-  try {
-    const result = await feishuRequest<{ user: FeishuUserInfo }>({
-      account,
-      method: "GET",
-      path: `/contact/v3/users/${userId}`,
-      query: {
-        user_id_type: userIdType,
-      },
-    });
-
-    return result.user;
-  } catch {
-    return null;
-  }
-}
-
-/**
  * Get group info
  */
 export async function getFeishuGroupInfo(params: {

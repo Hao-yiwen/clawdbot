@@ -72,18 +72,6 @@ export type FeishuMessageEvent = {
   };
 };
 
-// URL verification event
-export type FeishuUrlVerificationEvent = {
-  challenge: string;
-  token: string;
-  type: "url_verification";
-};
-
-// Encrypted event wrapper
-export type FeishuEncryptedEvent = {
-  encrypt: string;
-};
-
 // Bot added to chat event
 export type FeishuBotAddedEvent = {
   schema: "2.0";
@@ -99,12 +87,11 @@ export type FeishuBotAddedEvent = {
 // Bot removed from chat event
 export type FeishuBotRemovedEvent = FeishuBotAddedEvent;
 
-// Generic event union
+// Generic event union (WebSocket mode - no URL verification)
 export type FeishuEvent =
   | FeishuMessageEvent
   | FeishuBotAddedEvent
-  | FeishuBotRemovedEvent
-  | FeishuUrlVerificationEvent;
+  | FeishuBotRemovedEvent;
 
 // Rich text (post) content structure
 export type FeishuPostTag =
@@ -207,9 +194,6 @@ export type FeishuAccountConfig = {
   enabled?: boolean;
   appId?: string;
   appSecret?: string;
-  encryptKey?: string;
-  verificationToken?: string;
-  webhookPath?: string;
   requireMention?: boolean;
   groupPolicy?: "open" | "allowlist" | "disabled";
   historyLimit?: number;

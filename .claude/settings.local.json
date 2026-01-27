@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pnpm build:*)",
+      "Bash(pnpm clawdbot setup:*)",
+      "Bash(clawdbot config:*)",
+      "Bash(pnpm clawdbot agents add:*)",
+      "Bash(claude setup-token:*)",
+      "Bash(pnpm clawdbot models status:*)",
+      "Bash(claude auth login:*)",
+      "Bash(security find-generic-password -s \"Claude Code-credentials\" -w)",
+      "Bash(claude)",
+      "Bash(npx tsc:*)",
+      "Bash(pnpm exec tsc:*)",
+      "Bash(node --import tsx -e:*)",
+      "Bash(pnpm clawdbot channels status:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:open.feishu.cn)",
+      "Bash(pnpm install:*)",
+      "Bash(pnpm lint:*)",
+      "Bash(pnpm clawdbot gateway run:*)",
+      "Bash(pnpm clawdbot gateway stop:*)",
+      "Bash(pkill:*)",
+      "Bash(kill:*)"
+    ]
+  }
+}

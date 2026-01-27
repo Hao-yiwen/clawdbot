@@ -1,5 +1,4 @@
-import { logVerbose } from "../../../../../src/globals.js";
-
+import { getFeishuRuntime } from "../../runtime.js";
 import type { ResolvedFeishuAccount } from "../../accounts.js";
 import type { FeishuMessageEvent } from "../../types.js";
 import type { FeishuMonitorContext } from "../context.js";
@@ -15,6 +14,13 @@ export function createFeishuMessageEventHandler(params: {
   messageHandler: FeishuMessageHandler;
 }): FeishuMessageEventHandler {
   const { ctx, messageHandler } = params;
+  const core = getFeishuRuntime();
+
+  const logVerbose = (message: string) => {
+    if (core.logging.shouldLogVerbose()) {
+      ctx.logger.debug(message);
+    }
+  };
 
   const handleMessageReceive = async (event: FeishuMessageEvent) => {
     const message = event.event.message;

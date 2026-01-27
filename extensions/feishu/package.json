@@ -23,6 +23,9 @@
       "defaultChoice": "npm"
     }
   },
+  "dependencies": {
+    "@larksuiteoapi/node-sdk": "^1.36.0"
+  },
   "devDependencies": {
     "clawdbot": "workspace:*"
   }

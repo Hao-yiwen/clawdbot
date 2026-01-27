@@ -304,6 +304,16 @@ importers:
 
   extensions/discord: {}
 
+  extensions/feishu:
+    dependencies:
+      '@larksuiteoapi/node-sdk':
+        specifier: ^1.36.0
+        version: 1.56.1
+    devDependencies:
+      clawdbot:
+        specifier: workspace:*
+        version: link:../..
+
   extensions/google-antigravity-auth: {}
 
   extensions/google-gemini-cli-auth: {}
@@ -355,9 +365,9 @@ importers:
   extensions/mattermost: {}
 
   extensions/memory-core:
-    dependencies:
+    devDependencies:
       clawdbot:
-        specifier: '>=2026.1.25'
+        specifier: workspace:*
         version: link:../..
 
   extensions/memory-lancedb:
@@ -1219,48 +1229,6 @@ packages:
   '@kwsites/promise-deferred@1.1.1':
     resolution: {integrity: sha512-GaHYm+c0O9MjZRu0ongGBRbinu8gVAMd2UZjji6jVmqKtZluZnptXGWhz1E8j8D2HJ3f/yMxKAUC0b+57wncIw==}
 
-  '@lancedb/lancedb-darwin-arm64@0.23.0':
-    resolution: {integrity: sha512-8w0sMCNMwBv2kv5+fczGeSVlNOL+BOKChSsO4usM0hMw3PmxasONPctQBsESDuPS8lQ6/AKAQc2HT/ddd5Mg5w==}
-    engines: {node: '>= 18'}
-    cpu: [arm64]
-    os: [darwin]
-
-  '@lancedb/lancedb-linux-arm64-gnu@0.23.0':
-    resolution: {integrity: sha512-+xse2IspO7hbuHT4H62q8Ct00fTojnuBxXp1X1I3/27dDvW8E+/itFiJuTZ0YMaJc7nNr9qh9YFXZ9hZdEmReg==}
-    engines: {node: '>= 18'}
-    cpu: [arm64]
-    os: [linux]
-
-  '@lancedb/lancedb-linux-arm64-musl@0.23.0':
-    resolution: {integrity: sha512-c2UCtGoYjA3oDdw5y3RLK7J2th3rSjYBng+1I03vU9g092y8KATAJO/lV2AtyxSC+esSuyY1dMEaj8ADcXjZAA==}
-    engines: {node: '>= 18'}
-    cpu: [arm64]
-    os: [linux]
-
-  '@lancedb/lancedb-linux-x64-gnu@0.23.0':
-    resolution: {integrity: sha512-OPL7tK3JCTx43ZxvbVs+CljfCer0KrojANQbcJ2V4VAp6XBhKx1sBAlIVGuCrd93pA8UOUP3iHsM7aglPo6rCg==}
-    engines: {node: '>= 18'}
-    cpu: [x64]
-    os: [linux]
-
-  '@lancedb/lancedb-linux-x64-musl@0.23.0':
-    resolution: {integrity: sha512-1ZEoQDwOrKvwPyAG+95/r1NYqX8Ca5bRek8Vr62CzWCEmHd/pFeEGWZ5STrkh+Bt3GLdi2JOivFtRbmuBAJypQ==}
-    engines: {node: '>= 18'}
-    cpu: [x64]
-    os: [linux]
-
-  '@lancedb/lancedb-win32-arm64-msvc@0.23.0':
-    resolution: {integrity: sha512-OuD1mkrgXvijRlXdbx3LvfuorO04FD5qHegnTOWGXh1sIwwrvvhcJAvXUGBNLY4n/lsWvA+xTjtMwRjUitvPKg==}
-    engines: {node: '>= 18'}
-    cpu: [arm64]
-    os: [win32]
-
-  '@lancedb/lancedb-win32-x64-msvc@0.23.0':
-    resolution: {integrity: sha512-5ve1hvVtp8zWxSE9A+MOQaicXl2Rn0ZG/NUaMTjTD3/CQHPKFmtrqDnM5khoPICTj2O2b10F6mn4cUzl5PASgA==}
-    engines: {node: '>= 18'}
-    cpu: [x64]
-    os: [win32]
-
   '@lancedb/lancedb@0.23.0':
     resolution: {integrity: sha512-aYrIoEG24AC+wILCL57Ius/Y4yU+xFHDPKLvmjzzN4byAjzeIGF0TC86S5RBt4Ji+dxS7yIWV5Q/gE5/fybIFQ==}
     engines: {node: '>= 18'}
@@ -1268,6 +1236,9 @@ packages:
     os: [darwin, linux, win32]
     peerDependencies:
       apache-arrow: '>=15.0.0 <=18.1.0'
+
+  '@larksuiteoapi/node-sdk@1.56.1':
+    resolution: {integrity: sha512-/ixtyJnWOmcupKgDXz+6G6qTLMi3cNrR+LGOuq2PMwcJ6hhXTUJNyAF+ADY7ah9OoeDniGU/UJwMb2gqKdxwcA==}
 
   '@line/bot-sdk@10.6.0':
     resolution: {integrity: sha512-4hSpglL/G/cW2JCcohaYz/BS0uOSJNV9IEYdMm0EiPEvDLayoI2hGq2D86uYPQFD2gvgkyhmzdShpWLG3P5r3w==}
@@ -1534,18 +1505,6 @@ packages:
     cpu: [arm, x64]
     os: [linux]
 
-  '@node-llama-cpp/linux-x64-cuda-ext@3.15.0':
-    resolution: {integrity: sha512-wQwgSl7Qm8vH56oBt7IuWWDNNsDECkVMS000C92wl3PkbzjwZFiWzehwa+kF8Lr2BBMiCJNkI5nEabhYH3RN2Q==}
-    engines: {node: '>=20.0.0'}
-    cpu: [x64]
-    os: [linux]
-
-  '@node-llama-cpp/linux-x64-cuda@3.15.0':
-    resolution: {integrity: sha512-mDjyVulCTRYilm9Emm3lDMx7dbI1vzGqk28Pj28shartjERTUu8aUNDYOmVKNMLpUKS1akw7vy0lMF8t4qswxQ==}
-    engines: {node: '>=20.0.0'}
-    cpu: [x64]
-    os: [linux]
-
   '@node-llama-cpp/linux-x64-vulkan@3.15.0':
     resolution: {integrity: sha512-htVIthQKq/rr8v5e7NiVtcHsstqTBAAC50kUymmDMbrzAu6d/EHacCJpNbU57b1UUa1nKN5cBqr6Jr+QqEalMA==}
     engines: {node: '>=20.0.0'}
@@ -1574,24 +1533,6 @@ packages:
     resolution: {integrity: sha512-GwhqaPNpbtGDmw0Ex13hwq4jqzSZr7hw5QpRWhSKB1dHiYj6C1NLM1Vz5xiDZX+69WI/ndb+FEqGiIYFQpfmiQ==}
     engines: {node: '>=20.0.0'}
     cpu: [arm64, x64]
-    os: [win32]
-
-  '@node-llama-cpp/win-x64-cuda-ext@3.15.0':
-    resolution: {integrity: sha512-KQoNH9KsVtqGVXaRdPrnHPrg5w3KOM7CfynPmG1m16gmjmDSIspdPg/Dbg6DgHBfkdAzt+duRZEBk8Bg8KbDHw==}
-    engines: {node: '>=20.0.0'}
-    cpu: [x64]
-    os: [win32]
-
-  '@node-llama-cpp/win-x64-cuda@3.15.0':
-    resolution: {integrity: sha512-2Kyu1roDwXwFLaJgGZQISIXP9lCDZtJCx/DRcmrYRHcSUFCzo5ikOuAECyliSSQmRUAvvlRCuD+GrTcegbhojA==}
-    engines: {node: '>=20.0.0'}
-    cpu: [x64]
-    os: [win32]
-
-  '@node-llama-cpp/win-x64-vulkan@3.15.0':
-    resolution: {integrity: sha512-sH+K7lO49WrUvCCC3RPddCBrn2ZQwKCXKL90P/NZicMRgxTPFZEVSU2jXR/bu1K8B+4lNN+z5OEbjSYs7cKEcA==}
-    engines: {node: '>=20.0.0'}
-    cpu: [x64]
     os: [win32]
 
   '@node-llama-cpp/win-x64@3.15.0':
@@ -2981,6 +2922,9 @@ packages:
   aws4@1.13.2:
     resolution: {integrity: sha512-lHe62zvbTB5eEABUVi/AwVh0ZKY9rMMDhmm+eeyuuUQbQ3+J+fONVQOZyj+DdrvD4BY33uYniyRJ4UJIaSKAfw==}
 
+  axios@0.27.2:
+    resolution: {integrity: sha512-t+yRIyySRTp/wua5xEr+z1q60QmLq8ABsS5O9Me1AsE5dfKqgnCFzwiCZZ/cGNd1lq4/7akDWMxdhVlucjmnOQ==}
+
   axios@1.13.2:
     resolution: {integrity: sha512-VPk9ebNqPcy5lRGuSlKx752IlDatOjT9paPlm8A7yOuW2Fbvp4X3JznJtT4f0GzGLLiWE9W8onz51SqLYwzGaA==}
 
@@ -4059,6 +4003,9 @@ packages:
   lodash.debounce@4.0.8:
     resolution: {integrity: sha512-FT1yDzDYEoYWhnSGnpE/4Kj1fLZkDFyqRb7fNt6FdYOSxlUWAtp42Eh6Wb0rGIv/m9Bgo7x4GhQbm5Ys4SG5ow==}
 
+  lodash.identity@3.0.0:
+    resolution: {integrity: sha512-AupTIzdLQxJS5wIYUQlgGyk2XRTfGXA+MCghDHqZk0pzUNYvd3EESS6dkChNauNYVIutcb0dfHw1ri9Q1yPV8Q==}
+
   lodash.includes@4.3.0:
     resolution: {integrity: sha512-W3Bx6mdkRTGtlJISOvVD/lbqjTlPPUDTMnlXZFnVwi9NKJ6tiAk6LVdlhZMm17VZisqhKcgzpO5Wz91PCt5b0w==}
 
@@ -4077,8 +4024,14 @@ packages:
   lodash.isstring@4.0.1:
     resolution: {integrity: sha512-0wJxfxH1wgO3GrbuP+dTTk7op+6L41QCXbGINEmD+ny/G/eCqGzxyCsh7159S+mgDDcoarnBw6PC1PS5+wUGgw==}
 
+  lodash.merge@4.6.2:
+    resolution: {integrity: sha512-0KpjqXRVvrYyCsX1swR/XTK0va6VQkQM6MNo7PqW77ByjAhoARA8EfrP1N4+KlKj8YS0ZUCtRT/YUuhyYDujIQ==}
+
   lodash.once@4.1.1:
     resolution: {integrity: sha512-Sb487aTOCr9drQVL8pIxOzVhafOjZN9UU54hiN8PU3uAiSV7lx1yYNpbNmex2PK6dSJoNTSJUUswT651yww3Mg==}
+
+  lodash.pickby@4.6.0:
+    resolution: {integrity: sha512-AZV+GsS/6ckvPOVQPXSiFFacKvKB4kOQu6ynt9wz0F3LO4R9Ij4K1ddYsIytDpSgLz88JHd9P+oaLeej5/Sl7Q==}
 
   lodash@4.17.23:
     resolution: {integrity: sha512-LgVTMpQtIopCi79SJeDiP0TfWi5CNEc/L/aRdTh3yIvmZXTnheWpKjSZhnvMl8iXbC1tFg9gdHHDMLoV7CnG+w==}
@@ -6698,39 +6651,24 @@ snapshots:
   '@kwsites/promise-deferred@1.1.1':
     optional: true
 
-  '@lancedb/lancedb-darwin-arm64@0.23.0':
-    optional: true
-
-  '@lancedb/lancedb-linux-arm64-gnu@0.23.0':
-    optional: true
-
-  '@lancedb/lancedb-linux-arm64-musl@0.23.0':
-    optional: true
-
-  '@lancedb/lancedb-linux-x64-gnu@0.23.0':
-    optional: true
-
-  '@lancedb/lancedb-linux-x64-musl@0.23.0':
-    optional: true
-
-  '@lancedb/lancedb-win32-arm64-msvc@0.23.0':
-    optional: true
-
-  '@lancedb/lancedb-win32-x64-msvc@0.23.0':
-    optional: true
-
   '@lancedb/lancedb@0.23.0(apache-arrow@18.1.0)':
     dependencies:
       apache-arrow: 18.1.0
       reflect-metadata: 0.2.2
-    optionalDependencies:
-      '@lancedb/lancedb-darwin-arm64': 0.23.0
-      '@lancedb/lancedb-linux-arm64-gnu': 0.23.0
-      '@lancedb/lancedb-linux-arm64-musl': 0.23.0
-      '@lancedb/lancedb-linux-x64-gnu': 0.23.0
-      '@lancedb/lancedb-linux-x64-musl': 0.23.0
-      '@lancedb/lancedb-win32-arm64-msvc': 0.23.0
-      '@lancedb/lancedb-win32-x64-msvc': 0.23.0
+
+  '@larksuiteoapi/node-sdk@1.56.1':
+    dependencies:
+      axios: 0.27.2
+      lodash.identity: 3.0.0
+      lodash.merge: 4.6.2
+      lodash.pickby: 4.6.0
+      protobufjs: 7.5.4
+      qs: 6.14.1
+      ws: 8.19.0
+    transitivePeerDependencies:
+      - bufferutil
+      - debug
+      - utf-8-validate
 
   '@line/bot-sdk@10.6.0':
     dependencies:
@@ -7039,12 +6977,6 @@ snapshots:
   '@node-llama-cpp/linux-armv7l@3.15.0':
     optional: true
 
-  '@node-llama-cpp/linux-x64-cuda-ext@3.15.0':
-    optional: true
-
-  '@node-llama-cpp/linux-x64-cuda@3.15.0':
-    optional: true
-
   '@node-llama-cpp/linux-x64-vulkan@3.15.0':
     optional: true
 
@@ -7058,15 +6990,6 @@ snapshots:
     optional: true
 
   '@node-llama-cpp/win-arm64@3.15.0':
-    optional: true
-
-  '@node-llama-cpp/win-x64-cuda-ext@3.15.0':
-    optional: true
-
-  '@node-llama-cpp/win-x64-cuda@3.15.0':
-    optional: true
-
-  '@node-llama-cpp/win-x64-vulkan@3.15.0':
     optional: true
 
   '@node-llama-cpp/win-x64@3.15.0':
@@ -8693,6 +8616,13 @@ snapshots:
 
   aws4@1.13.2: {}
 
+  axios@0.27.2:
+    dependencies:
+      follow-redirects: 1.15.11(debug@4.4.3)
+      form-data: 4.0.5
+    transitivePeerDependencies:
+      - debug
+
   axios@1.13.2(debug@4.4.3):
     dependencies:
       follow-redirects: 1.15.11(debug@4.4.3)
@@ -9913,6 +9843,8 @@ snapshots:
   lodash.debounce@4.0.8:
     optional: true
 
+  lodash.identity@3.0.0: {}
+
   lodash.includes@4.3.0: {}
 
   lodash.isboolean@3.0.3: {}
@@ -9925,7 +9857,11 @@ snapshots:
 
   lodash.isstring@4.0.1: {}
 
+  lodash.merge@4.6.2: {}
+
   lodash.once@4.1.1: {}
+
+  lodash.pickby@4.6.0: {}
 
   lodash@4.17.23: {}
 
@@ -10211,16 +10147,11 @@ snapshots:
       '@node-llama-cpp/linux-arm64': 3.15.0
       '@node-llama-cpp/linux-armv7l': 3.15.0
       '@node-llama-cpp/linux-x64': 3.15.0
-      '@node-llama-cpp/linux-x64-cuda': 3.15.0
-      '@node-llama-cpp/linux-x64-cuda-ext': 3.15.0
       '@node-llama-cpp/linux-x64-vulkan': 3.15.0
       '@node-llama-cpp/mac-arm64-metal': 3.15.0
       '@node-llama-cpp/mac-x64': 3.15.0
       '@node-llama-cpp/win-arm64': 3.15.0
       '@node-llama-cpp/win-x64': 3.15.0
-      '@node-llama-cpp/win-x64-cuda': 3.15.0
-      '@node-llama-cpp/win-x64-cuda-ext': 3.15.0
-      '@node-llama-cpp/win-x64-vulkan': 3.15.0
       typescript: 5.9.3
     transitivePeerDependencies:
       - supports-color

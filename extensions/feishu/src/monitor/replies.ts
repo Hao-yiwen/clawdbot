@@ -1,7 +1,9 @@
-import type { RuntimeEnv } from "clawdbot/plugin-sdk";
-
-import { isSilentReplyText, SILENT_REPLY_TOKEN } from "../../../../src/auto-reply/tokens.js";
-import type { ReplyPayload } from "../../../../src/auto-reply/types.js";
+import {
+  isSilentReplyText,
+  SILENT_REPLY_TOKEN,
+  type ReplyPayload,
+  type RuntimeEnv,
+} from "clawdbot/plugin-sdk";
 
 import type { ResolvedFeishuAccount } from "../accounts.js";
 import { sendMessageFeishu } from "../send.js";

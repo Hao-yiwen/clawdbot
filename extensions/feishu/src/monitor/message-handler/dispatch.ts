@@ -1,41 +1,45 @@
-import { deliverAutoReply } from "../../../../../src/auto-reply/router.js";
-import { logVerbose } from "../../../../../src/globals.js";
-
-import { deliverFeishuReplies } from "../replies.js";
+import { getFeishuRuntime } from "../../runtime.js";
+import { createFeishuReplyDispatcher } from "../reply-dispatcher.js";
 import type { PreparedFeishuMessage } from "./types.js";
 
 export async function dispatchPreparedFeishuMessage(
   prepared: PreparedFeishuMessage,
 ): Promise<void> {
-  const { ctx, account, route, replyTarget, ctxPayload, threadContext } = prepared;
+  const { ctx, account, replyTarget, ctxPayload, threadContext } = prepared;
+  const core = getFeishuRuntime();
 
-  const hasRepliedRef = { value: false };
+  const { dispatcher, replyOptions, markDispatchIdle } = core.channel.reply.createReplyDispatcherWithTyping(
+    createFeishuReplyDispatcher({
+      account,
+      runtime: ctx.runtime,
+      textLimit: ctx.textLimit,
+      replyToId: threadContext.replyToId,
+      target: replyTarget,
+    }),
+  );
 
   try {
-    await deliverAutoReply({
-      ctxPayload,
-      route,
-      runtime: ctx.runtime,
-      deliverReplies: async (replies) => {
-        await deliverFeishuReplies({
-          replies,
-          target: replyTarget,
-          account,
-          runtime: ctx.runtime,
-          textLimit: ctx.textLimit,
-          replyToId: threadContext.replyToId,
-        });
-        hasRepliedRef.value = true;
-      },
-      onStreamChunk: async () => {
-        // Feishu doesn't support streaming replies well, so we skip chunk delivery
-      },
-      onError: (err) => {
-        ctx.logger.error({ error: String(err) }, "feishu auto-reply failed");
-      },
+    const { queuedFinal, counts } = await core.channel.reply.dispatchReplyFromConfig({
+      ctx: ctxPayload,
+      cfg: ctx.cfg,
+      dispatcher,
+      replyOptions,
     });
+
+    markDispatchIdle();
+
+    const didSendReply = counts.final + counts.tool + counts.block > 0;
+    if (core.logging.shouldLogVerbose() && didSendReply) {
+      const finalCount = counts.final;
+      ctx.logger.debug(
+        `feishu: delivered ${finalCount} reply${finalCount === 1 ? "" : "ies"} to ${replyTarget}`,
+      );
+    }
   } catch (err) {
-    logVerbose(`feishu dispatch failed: ${String(err)}`);
+    markDispatchIdle();
+    if (core.logging.shouldLogVerbose()) {
+      ctx.logger.debug(`feishu dispatch failed: ${String(err)}`);
+    }
     ctx.runtime.error?.(`feishu dispatch failed: ${String(err)}`);
   }
 }

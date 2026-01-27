@@ -1,32 +1,14 @@
-import { hasControlCommand } from "../../../../../src/auto-reply/command-detection.js";
-import { shouldHandleTextCommands } from "../../../../../src/auto-reply/commands-registry.js";
-import type { FinalizedMsgContext } from "../../../../../src/auto-reply/templating.js";
-import {
-  formatInboundEnvelope,
-  resolveEnvelopeFormatOptions,
-} from "../../../../../src/auto-reply/envelope.js";
 import {
   buildPendingHistoryContextFromMap,
+  formatAllowlistMatchMeta,
+  logInboundDrop,
+  recordInboundSession,
   recordPendingHistoryEntryIfEnabled,
-} from "../../../../../src/auto-reply/reply/history.js";
-import { finalizeInboundContext } from "../../../../../src/auto-reply/reply/inbound-context.js";
-import {
-  buildMentionRegexes,
-  matchesMentionWithExplicit,
-} from "../../../../../src/auto-reply/reply/mentions.js";
-import { logVerbose, shouldLogVerbose } from "../../../../../src/globals.js";
-import { enqueueSystemEvent } from "../../../../../src/infra/system-events.js";
-import { buildPairingReply } from "../../../../../src/pairing/pairing-messages.js";
-import { upsertChannelPairingRequest } from "../../../../../src/pairing/pairing-store.js";
-import { resolveAgentRoute } from "../../../../../src/routing/resolve-route.js";
-import { resolveThreadSessionKeys } from "../../../../../src/routing/session-key.js";
-import { resolveMentionGatingWithBypass } from "../../../../../src/channels/mention-gating.js";
-import { resolveConversationLabel } from "../../../../../src/channels/conversation-label.js";
-import { resolveControlCommandGate } from "../../../../../src/channels/command-gating.js";
-import { logInboundDrop } from "../../../../../src/channels/logging.js";
-import { formatAllowlistMatchMeta } from "../../../../../src/channels/allowlist-match.js";
-import { recordInboundSession } from "../../../../../src/channels/session.js";
-import { readSessionUpdatedAt, resolveStorePath } from "../../../../../src/config/sessions.js";
+  resolveControlCommandGate,
+  resolveMentionGatingWithBypass,
+} from "clawdbot/plugin-sdk";
+
+import { getFeishuRuntime } from "../../runtime.js";
 
 import type { ResolvedFeishuAccount } from "../../accounts.js";
 import { sendMessageFeishu } from "../../send.js";
@@ -48,6 +30,13 @@ export async function prepareFeishuMessage(params: {
 }): Promise<PreparedFeishuMessage | null> {
   const { ctx, account, event, opts } = params;
   const cfg = ctx.cfg;
+  const core = getFeishuRuntime();
+
+  const logVerbose = (message: string) => {
+    if (core.logging.shouldLogVerbose()) {
+      ctx.logger.debug(message);
+    }
+  };
 
   const message = event.event.message;
   const sender = event.event.sender;
@@ -105,7 +94,7 @@ export async function prepareFeishuMessage(params: {
         if (ctx.dmPolicy === "pairing") {
           const senderInfo = await ctx.resolveUserName(senderId);
           const senderName = senderInfo?.name ?? undefined;
-          const { code, created } = await upsertChannelPairingRequest({
+          const { code, created } = await core.channel.pairing.upsertPairingRequest({
             channel: "feishu",
             id: senderId,
             meta: { name: senderName },
@@ -118,7 +107,7 @@ export async function prepareFeishuMessage(params: {
               } (${allowMatchMeta})`,
             );
             try {
-              await sendMessageFeishu(chatId, buildPairingReply({
+              await sendMessageFeishu(chatId, core.channel.pairing.buildPairingReply({
                 channel: "feishu",
                 idLine: `Your Feishu user id: ${senderId}`,
                 code,
@@ -138,7 +127,7 @@ export async function prepareFeishuMessage(params: {
   }
 
   // Resolve route
-  const route = resolveAgentRoute({
+  const route = core.channel.routing.resolveAgentRoute({
     cfg,
     channel: "feishu",
     accountId: account.accountId,
@@ -153,11 +142,11 @@ export async function prepareFeishuMessage(params: {
   const rootId = threadContext.rootId;
   const isThreadReply = threadContext.isThreadReply;
 
-  const threadKeys = resolveThreadSessionKeys({
-    baseSessionKey,
-    threadId: isThreadReply ? rootId : undefined,
-  });
-  const sessionKey = threadKeys.sessionKey;
+  // Use simple thread session key logic
+  const sessionKey = isThreadReply && rootId
+    ? `${baseSessionKey}:thread:${rootId}`
+    : baseSessionKey;
+  const parentSessionKey = isThreadReply ? baseSessionKey : undefined;
   const historyKey = isThreadReply ? sessionKey : chatId;
 
   // Resolve sender info
@@ -186,7 +175,7 @@ export async function prepareFeishuMessage(params: {
   }
 
   // Check mentions
-  const mentionRegexes = buildMentionRegexes(cfg, route.agentId);
+  const mentionRegexes = core.channel.mentions.buildMentionRegexes(cfg, route.agentId);
   const mentions = message.mentions ?? [];
   const explicitlyMentioned = Boolean(
     ctx.botOpenId && mentions.some((m) => m.id?.open_id === ctx.botOpenId),
@@ -196,7 +185,7 @@ export async function prepareFeishuMessage(params: {
   const wasMentioned =
     opts.wasMentioned ??
     (!isDirectMessage &&
-      matchesMentionWithExplicit({
+      core.channel.mentions.matchesMentionWithExplicit({
         text: rawBody,
         mentionRegexes,
         explicit: {
@@ -207,8 +196,8 @@ export async function prepareFeishuMessage(params: {
       }));
 
   // Check control commands
-  const allowTextCommands = shouldHandleTextCommands({ cfg, surface: "feishu" });
-  const hasControlCommandInMessage = hasControlCommand(rawBody, cfg);
+  const allowTextCommands = core.channel.commands.shouldHandleTextCommands({ cfg, surface: "feishu" });
+  const hasControlCommandInMessage = core.channel.text.hasControlCommand(rawBody, cfg);
 
   const ownerAuthorized = resolveFeishuAllowListMatch({
     allowList: ctx.allowFrom,
@@ -297,30 +286,24 @@ export async function prepareFeishuMessage(params: {
     ? `feishu:user:${senderId}`
     : `feishu:chat:${chatId}`;
 
-  enqueueSystemEvent(`${inboundLabel}: ${preview}`, {
+  core.system.enqueueSystemEvent(`${inboundLabel}: ${preview}`, {
     sessionKey,
     contextKey: `feishu:message:${chatId}:${messageId}`,
   });
 
-  const envelopeFrom =
-    resolveConversationLabel({
-      ChatType: isDirectMessage ? "direct" : "channel",
-      SenderName: senderName,
-      GroupSubject: isGroup ? roomLabel : undefined,
-      From: feishuFrom,
-    }) ?? (isDirectMessage ? senderName : roomLabel);
+  const envelopeFrom = isDirectMessage ? senderName : roomLabel;
 
   const textWithId = `${rawBody}\n[feishu message id: ${messageId} chat: ${chatId}]`;
-  const storePath = resolveStorePath(ctx.cfg.session?.store, {
+  const storePath = core.channel.session.resolveStorePath(ctx.cfg.session?.store, {
     agentId: route.agentId,
   });
-  const envelopeOptions = resolveEnvelopeFormatOptions(ctx.cfg);
-  const previousTimestamp = readSessionUpdatedAt({
+  const envelopeOptions = core.channel.reply.resolveEnvelopeFormatOptions(ctx.cfg);
+  const previousTimestamp = core.channel.session.readSessionUpdatedAt({
     storePath,
     sessionKey: route.sessionKey,
   });
 
-  const body = formatInboundEnvelope({
+  const body = core.channel.reply.formatInboundEnvelope({
     channel: "Feishu",
     from: envelopeFrom,
     timestamp: message.create_time ? Number(message.create_time) : undefined,
@@ -339,7 +322,7 @@ export async function prepareFeishuMessage(params: {
       limit: ctx.historyLimit,
       currentMessage: combinedBody,
       formatEntry: (entry) =>
-        formatInboundEnvelope({
+        core.channel.reply.formatInboundEnvelope({
           channel: "Feishu",
           from: roomLabel,
           timestamp: entry.timestamp,
@@ -357,7 +340,7 @@ export async function prepareFeishuMessage(params: {
 
   const groupSystemPrompt = isGroup ? groupConfig?.systemPrompt?.trim() : undefined;
 
-  const ctxPayload = finalizeInboundContext({
+  const ctxPayload = core.channel.reply.finalizeInboundContext({
     Body: combinedBody,
     RawBody: rawBody,
     CommandBody: rawBody,
@@ -376,13 +359,13 @@ export async function prepareFeishuMessage(params: {
     MessageSid: messageId,
     ReplyToId: threadContext.replyToId,
     MessageThreadId: rootId,
-    ParentSessionKey: threadKeys.parentSessionKey,
+    ParentSessionKey: parentSessionKey,
     Timestamp: message.create_time ? Number(message.create_time) : undefined,
     WasMentioned: isGroup ? effectiveWasMentioned : undefined,
     CommandAuthorized: commandAuthorized,
     OriginatingChannel: "feishu" as const,
     OriginatingTo: feishuTo,
-  }) satisfies FinalizedMsgContext;
+  });
 
   await recordInboundSession({
     storePath,
@@ -411,8 +394,8 @@ export async function prepareFeishuMessage(params: {
   const replyTarget = ctxPayload.To ?? undefined;
   if (!replyTarget) return null;
 
-  if (shouldLogVerbose()) {
-    logVerbose(`feishu inbound: chat=${chatId} from=${feishuFrom} preview="${preview}"`);
+  if (core.logging.shouldLogVerbose()) {
+    ctx.logger.debug(`feishu inbound: chat=${chatId} from=${feishuFrom} preview="${preview}"`);
   }
 
   return {
@@ -420,7 +403,7 @@ export async function prepareFeishuMessage(params: {
     account,
     event,
     route,
-    groupConfig,
+    groupConfig: groupConfig ?? null,
     replyTarget,
     ctxPayload,
     isDirectMessage,

@@ -12,6 +12,8 @@ import { sendMessageFeishu } from "./send.js";
 import { chunkFeishuText } from "./format.js";
 import { looksLikeFeishuId, normalizeFeishuTarget, parseFeishuTarget } from "./targets.js";
 import { getFeishuRuntime } from "./runtime.js";
+import { createFeishuWSClient, type FeishuWSClient } from "./ws-client.js";
+import { feishuOnboardingAdapter } from "./onboarding.js";
 
 const DEFAULT_ACCOUNT_ID = "default";
 
@@ -37,6 +39,7 @@ export const feishuPlugin: ChannelPlugin<ResolvedFeishuAccount> = {
     ...meta,
     quickstartAllowFrom: true,
   },
+  onboarding: feishuOnboardingAdapter,
   pairing: {
     idLabel: "feishuUserId",
     normalizeAllowEntry: (entry) => {
@@ -95,7 +98,7 @@ export const feishuPlugin: ChannelPlugin<ResolvedFeishuAccount> = {
     deleteAccount: ({ cfg, accountId }) => {
       const feishuConfig = getFeishuConfig(cfg) ?? {};
       if (accountId === DEFAULT_ACCOUNT_ID) {
-        const { appId, appSecret, encryptKey, verificationToken, ...rest } = feishuConfig;
+        const { appId, appSecret, ...rest } = feishuConfig;
         return {
           ...cfg,
           channels: {
@@ -239,9 +242,6 @@ export const feishuPlugin: ChannelPlugin<ResolvedFeishuAccount> = {
         useEnv?: boolean;
         appId?: string;
         appSecret?: string;
-        encryptKey?: string;
-        verificationToken?: string;
-        webhookPath?: string;
       };
       const feishuConfig = getFeishuConfig(cfg) ?? {};
 
@@ -260,11 +260,6 @@ export const feishuPlugin: ChannelPlugin<ResolvedFeishuAccount> = {
                 : typedInput.appSecret
                   ? { appSecret: typedInput.appSecret }
                   : {}),
-              ...(typedInput.encryptKey ? { encryptKey: typedInput.encryptKey } : {}),
-              ...(typedInput.verificationToken
-                ? { verificationToken: typedInput.verificationToken }
-                : {}),
-              ...(typedInput.webhookPath ? { webhookPath: typedInput.webhookPath } : {}),
             },
           },
         };
@@ -285,11 +280,6 @@ export const feishuPlugin: ChannelPlugin<ResolvedFeishuAccount> = {
                 ...(typedInput.name ? { name: typedInput.name } : {}),
                 ...(typedInput.appId ? { appId: typedInput.appId } : {}),
                 ...(typedInput.appSecret ? { appSecret: typedInput.appSecret } : {}),
-                ...(typedInput.encryptKey ? { encryptKey: typedInput.encryptKey } : {}),
-                ...(typedInput.verificationToken
-                  ? { verificationToken: typedInput.verificationToken }
-                  : {}),
-                ...(typedInput.webhookPath ? { webhookPath: typedInput.webhookPath } : {}),
               },
             },
           },
@@ -338,9 +328,45 @@ export const feishuPlugin: ChannelPlugin<ResolvedFeishuAccount> = {
       };
     },
   },
+  gateway: {
+    startAccount: async ({ cfg, accountId, account, runtime, abortSignal, setStatus }) => {
+      const core = getFeishuRuntime();
+      const logger = core.logging.getChildLogger({ module: "feishu-gateway" });
+
+      try {
+        const wsClient = await createFeishuWSClient({ cfg, runtime, accountId });
+        await wsClient.start();
+        logger.info({ accountId }, "feishu: WebSocket client started");
+        setStatus({ accountId: accountId ?? "default", connected: true });
+
+        // Keep running until aborted
+        return new Promise<void>((resolve) => {
+          abortSignal.addEventListener("abort", () => {
+            wsClient.stop();
+            logger.info({ accountId }, "feishu: WebSocket client stopped");
+            resolve();
+          });
+        });
+      } catch (err) {
+        logger.error({ error: String(err) }, "feishu: failed to start WebSocket client");
+        throw err;
+      }
+    },
+  },
 };
 
 // Channel dock for gateway integration
 export const feishuDock = {
   id: "feishu",
+  capabilities: {
+    chatTypes: ["direct", "group"],
+    reactions: false,
+    threads: false,
+    media: false,
+    nativeCommands: false,
+    blockStreaming: true,
+  },
+  outbound: {
+    textChunkLimit: 4000,
+  },
 };

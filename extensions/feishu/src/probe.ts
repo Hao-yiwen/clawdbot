@@ -1,4 +1,4 @@
-import { probeFeishu as probeFeishuApi } from "./api.js";
+import { probeFeishuBasic } from "./api.js";
 import type { ResolvedFeishuAccount } from "./accounts.js";
 
 export type FeishuProbe = {
@@ -23,7 +23,7 @@ export async function probeFeishu(
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
     const result = await Promise.race([
-      probeFeishuApi(account),
+      probeFeishuBasic(account),
       new Promise<never>((_, reject) => {
         controller.signal.addEventListener("abort", () => {
           reject(new Error("timeout"));
